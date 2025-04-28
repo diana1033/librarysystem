@@ -34,8 +34,8 @@ class User(AbstractUser):
 
     middle_name = models.CharField(max_length=50, blank=True)
     birth_date = models.DateField(null=True, blank=True)
-    passport = models.CharField(max_length=50)
-    phone = models.CharField(max_length=20)
+    passport = models.CharField(max_length=50, unique=True)
+    phone = models.CharField(max_length=20, unique=True)
     address = models.TextField()
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='reader')
 
@@ -181,8 +181,18 @@ class BookReturn(SoftDeleteModel):
     issue = models.OneToOneField(BookIssue, on_delete=models.CASCADE)
     return_date = models.DateField(auto_now_add=True)
     condition = models.TextField(blank=True)
+    fine = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     received_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='returned_books',
                                     limit_choices_to={'role': 'librarian'})
+
+    def save(self, *args, **kwargs):
+        if self.issue:
+            due_date = self.issue.due_date
+            now = timezone.now().date()
+            if now > due_date:
+                days_late = (now - due_date).days
+                self.fine = days_late * 5  # 5 сомов в день
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Return for {self.issue}"

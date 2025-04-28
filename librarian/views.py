@@ -6,6 +6,9 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+from django.db import models
+
 
 
 
@@ -167,6 +170,97 @@ class CurrentUserView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+class IssuedBooksReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        issues = BookIssue.objects.select_related('reader', 'inventory__book', 'issued_by')
+
+        report_data = []
+        for issue in issues:
+            returned = BookReturn.objects.filter(issue=issue).exists()
+            status = "Возвращена" if returned else "На руках"
+            report_data.append({
+                "issue_date": issue.issue_date,
+                "title": issue.inventory.book.title,
+                "reader": issue.reader.get_full_name(),
+                "issued_by": issue.issued_by.get_full_name() if issue.issued_by else "-",
+                "due_date": issue.due_date,
+                "status": status,
+            })
+
+        return Response(report_data)
+
+class OverdueBooksReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        today = timezone.now().date()
+        # Находим все книги, которые не были возвращены и просрочены
+        overdue_issues = BookIssue.objects.filter(
+            due_date__lt=today,
+            inventory__status='issued'
+        ).select_related('reader', 'inventory')
+
+        data = []
+        for issue in overdue_issues:
+            data.append({
+                'reader': str(issue.reader),
+                'inventory_number': issue.inventory.inventory_number,
+                'book_title': issue.inventory.book.title,
+                'issue_date': issue.issue_date,
+                'due_date': issue.due_date,
+                'days_overdue': (today - issue.due_date).days,
+            })
+
+        return Response(data)
+
+
+class BookAvailabilityReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        books = Book.objects.filter(is_deleted=False)
+
+        report = []
+        for book in books:
+            total_copies = Inventory.objects.filter(book=book).count()
+            available_copies = Inventory.objects.filter(book=book, status='available').count()
+            issued_copies = Inventory.objects.filter(book=book, status='borrowed').count()
+            deleted_copies = Inventory.objects.filter(book=book, status='deleted').count()
+
+            report.append({
+                'book_title': book.title,
+                'total_copies': total_copies,
+                'available_copies': available_copies,
+                'issued_copies': issued_copies,
+                'deleted_copies': deleted_copies,
+            })
+
+        return Response(report)
+
+class ReaderActivityReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        readers = User.objects.filter(role='reader', is_active = True)
+
+        report = []
+        for reader in readers:
+            books_borrowed = BookIssue.objects.filter(reader=reader).count()
+            total_fines = BookReturn.objects.filter(issue__reader=reader).aggregate(
+                total_fine=models.Sum('fine')
+            )['total_fine'] or 0
+
+            report.append({
+                'reader_name': f"{reader.last_name} {reader.first_name}",
+                'books_borrowed': books_borrowed,
+                'total_fines': float(total_fines),
+            })
+
+        return Response(report)
 
 # class ReaderAPIList(generics.ListCreateAPIView):
 #     queryset = Reader.objects.all()

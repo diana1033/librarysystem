@@ -17,11 +17,24 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'password', 'first_name', 'last_name', 'middle_name', 'email',
                   'role', 'birth_date', 'passport', 'phone', 'address']
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True, 'required': False},
+            'passport': {'required': False},  # Делает паспорт необязательным при обновлении
+            'phone': {'required': False},  # Делает телефон необязательным при обновлении
+            'address': {'required': False},
         }
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            if attr == 'password':
+                instance.set_password(value)
+            else:
+                setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -190,8 +203,8 @@ class BookReturnSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BookReturn
-        fields = ['id', 'issue', 'issue_id', 'return_date', 'condition', 'received_by']
-        read_only_fields = ['return_date', 'received_by', 'issue']
+        fields = ['id', 'issue', 'issue_id', 'return_date', 'condition', 'fine', 'received_by']
+        read_only_fields = ['return_date', 'received_by', 'issue', 'fine']
 
     def validate_issue_id(self, value):
         if BookReturn.objects.filter(issue=value).exists():

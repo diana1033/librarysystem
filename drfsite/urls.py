@@ -40,6 +40,10 @@ urlpatterns = [
     path('api/register/', RegisterView.as_view(), name='register'),
     path('api/', include(router.urls)),
     path("users/me/", CurrentUserView.as_view()),
+    path('reports/issued-books/', IssuedBooksReportView.as_view(), name='issued-books-report'),
+    path('reports/overdue-books/', OverdueBooksReportView.as_view(), name='overdue-books-report'),
+    path('reports/book-availability/', BookAvailabilityReportView.as_view(), name='book-availability-report'),
+    path('reports/reader-activity/', ReaderActivityReportView.as_view(), name='reader-activity-report'),
 ]
 
 urlpatterns += doc_url
