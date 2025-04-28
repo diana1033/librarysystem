@@ -86,14 +86,25 @@ WSGI_APPLICATION = 'drfsite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'librarian',
+#         'USER': 'postgres',
+#         'PASSWORD': 'p',
+#         'HOST': '127.0.0.1',
+#         'PORT': '5432',
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'librarian',
-        'USER': 'postgres',
-        'PASSWORD': 'p',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'NAME': 'library_db',
+        'USER': 'library_user',
+        'PASSWORD': 'library_password',
+        'HOST': 'db',
+        'PORT': 5432,
     }
 }
 
