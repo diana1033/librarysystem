@@ -42,23 +42,6 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.last_name} {self.first_name[0]}.{self.middle_name[0] if self.middle_name else ''}"
 
-    def clean(self):
-        if not re.match(r'^[A-ZА-Я]{2}\d{6}$', self.passport):
-            raise ValidationError({'passport': 'Паспорт должен содержать 2 буквы и 6 цифр (например: AN123456)'})
-
-        if not re.match(r'^\+996\d{9}$', self.phone):
-            raise ValidationError({'phone': 'Телефон должен быть в формате +996XXXXXXXXX'})
-
-        if len(self.address.strip()) < 5:
-            raise ValidationError({'address': 'Адрес слишком короткий'})
-
-        if self.birth_date and self.birth_date > timezone.now().date():
-            raise ValidationError({'birth_date': 'Дата рождения не может быть в будущем'})
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-
     def delete(self, *args, **kwargs):
         self.is_active = False
         self.save()

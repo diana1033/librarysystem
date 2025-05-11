@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 from .models import Author, Direction, Publisher, Book, Inventory, BookIssue, BookReturn
 from datetime import date
+import re
+
 
 
 User = get_user_model()
@@ -23,8 +25,29 @@ class UserSerializer(serializers.ModelSerializer):
             'address': {'required': False},
         }
 
+    def validate_passport(self, value):
+        if not re.match(r'^[A-ZА-Я]{2}\d{6}$', value):
+            raise serializers.ValidationError('Паспорт должен содержать 2 буквы и 6 цифр (например: AN123456)')
+        return value
+
+    def validate_phone(self, value):
+        if not re.match(r'^\+996\d{9}$', value):
+            raise serializers.ValidationError('Телефон должен быть в формате +996XXXXXXXXX')
+        return value
+
+    def validate_address(self, value):
+        if len(value.strip()) < 5:
+            raise serializers.ValidationError('Адрес слишком короткий')
+        return value
+
+    def validate_birth_date(self, value):
+        if value and value > timezone.now().date():
+            raise serializers.ValidationError('Дата рождения не может быть в будущем')
+        return value
+
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        user = User.objects.create_user(**validated_data)
+        return user
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -50,6 +73,20 @@ class RegisterSerializer(serializers.ModelSerializer):
         age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
         if age < 14:
             raise ValidationError("Регистрация разрешена только с 14 лет.")
+        return value
+    def validate_passport(self, value):
+        if not re.match(r'^[A-ZА-Я]{2}\d{6}$', value):
+            raise serializers.ValidationError('Паспорт должен содержать 2 буквы и 6 цифр (например: AN123456)')
+        return value
+
+    def validate_phone(self, value):
+        if not re.match(r'^\+996\d{9}$', value):
+            raise serializers.ValidationError('Телефон должен быть в формате +996XXXXXXXXX')
+        return value
+
+    def validate_address(self, value):
+        if len(value.strip()) < 5:
+            raise serializers.ValidationError('Адрес слишком короткий')
         return value
 
     def create(self, validated_data):
