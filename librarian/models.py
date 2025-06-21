@@ -34,9 +34,9 @@ class User(AbstractUser):
 
     middle_name = models.CharField(max_length=50, blank=True)
     birth_date = models.DateField(null=True, blank=True)
-    passport = models.CharField(max_length=50, unique=True)
-    phone = models.CharField(max_length=20, unique=True)
-    address = models.TextField()
+    passport = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='reader')
 
     def __str__(self):
@@ -72,6 +72,14 @@ class Publisher(SoftDeleteModel):
 
 # --- Книга ---
 class Book(SoftDeleteModel):
+    CATEGORY_CHOICES = [
+        ('textbook', 'Учебник'),
+        ('manual', 'Методичка'),
+        ('fiction', 'Художественная'),
+        ('science', 'Научная'),
+        ('', ' Публицистика'),
+        ('other', 'Другое'),
+    ]
     title = models.CharField(max_length=255)
     authors = models.ManyToManyField(Author)
     direction = models.ForeignKey(Direction, on_delete=models.SET_NULL, null=True)
@@ -80,6 +88,8 @@ class Book(SoftDeleteModel):
     bbk = models.CharField("ББК", max_length=50, blank=True)  # ББК — аналогично
     isbn = models.CharField("ISBN", max_length=20, blank=True)
     quantity = models.PositiveIntegerField()
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
+    description = models.TextField(blank=True)
 
     def save(self, *args, **kwargs):
         creating = not self.pk

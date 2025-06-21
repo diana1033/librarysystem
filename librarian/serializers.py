@@ -65,29 +65,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'first_name', 'last_name', 'middle_name', 'email',
-                  'birth_date', 'passport', 'phone', 'address']
-
-    def validate_birth_date(self, value):
-        today = date.today()
-        age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
-        if age < 14:
-            raise ValidationError("Регистрация разрешена только с 14 лет.")
-        return value
-    def validate_passport(self, value):
-        if not re.match(r'^[A-ZА-Я]{2}\d{6}$', value):
-            raise serializers.ValidationError('Паспорт должен содержать 2 буквы и 6 цифр (например: AN123456)')
-        return value
-
-    def validate_phone(self, value):
-        if not re.match(r'^\+996\d{9}$', value):
-            raise serializers.ValidationError('Телефон должен быть в формате +996XXXXXXXXX')
-        return value
-
-    def validate_address(self, value):
-        if len(value.strip()) < 5:
-            raise serializers.ValidationError('Адрес слишком короткий')
-        return value
+        fields = ['username', 'password', 'first_name', 'last_name', 'middle_name']
 
     def create(self, validated_data):
         validated_data['role'] = 'reader'
@@ -187,11 +165,12 @@ class BookIssueSerializer(serializers.ModelSerializer):
         queryset=User.objects.filter(role='reader', is_active=True),
         write_only=True
     )
+    due_date = serializers.DateField(required=True)
 
     class Meta:
         model = BookIssue
         fields = ['id', 'reader', 'reader_id', 'book_id', 'inventory', 'issued_by', 'issue_date', 'due_date']
-        read_only_fields = ['issue_date', 'due_date', 'issued_by', 'reader', 'inventory']
+        read_only_fields = ['issue_date', 'issued_by', 'reader', 'inventory']
 
     def validate(self, attrs):
         reader = attrs['reader_id']
@@ -218,11 +197,12 @@ class BookIssueSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         reader = validated_data.pop('reader_id')
         book = validated_data.pop('book_id')
+        due_date = validated_data.pop('due_date')
 
         inventory = Inventory.objects.filter(book=book, status='available').first()
         validated_data['reader'] = reader
         validated_data['inventory'] = inventory
-        validated_data['due_date'] = timezone.now().date() + timedelta(days=30)
+        validated_data['due_date'] = due_date
         validated_data['issued_by'] = self.context['request'].user
 
         inventory.status = 'borrowed'

@@ -183,6 +183,7 @@ class IssuedBooksReportView(APIView):
             returned = BookReturn.objects.filter(issue=issue).exists()
             status = "Возвращена" if returned else "На руках"
             report_data.append({
+                "issue_id": issue.id,
                 "issue_date": issue.issue_date,
                 "title": issue.inventory.book.title,
                 "reader": issue.reader.get_full_name(),
