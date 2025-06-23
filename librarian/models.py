@@ -75,9 +75,10 @@ class Book(SoftDeleteModel):
     CATEGORY_CHOICES = [
         ('textbook', 'Учебник'),
         ('manual', 'Методичка'),
+        ('tutorial', 'Пособие'),
         ('fiction', 'Художественная'),
         ('science', 'Научная'),
-        ('', ' Публицистика'),
+        ('publicism', ' Публицистика'),
         ('other', 'Другое'),
     ]
     title = models.CharField(max_length=255)
