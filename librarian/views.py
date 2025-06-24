@@ -199,7 +199,6 @@ class OverdueBooksReportView(APIView):
 
     def get(self, request):
         today = timezone.now().date()
-        # Находим все книги, которые не были возвращены и просрочены
         overdue_issues = BookIssue.objects.filter(
             due_date__lt=today,
             inventory__status='issued'

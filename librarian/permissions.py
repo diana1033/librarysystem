@@ -13,5 +13,5 @@ class IsOwnerOrLibrarian(BasePermission):
     def has_object_permission(self, request, view, obj):
         return (
             request.user.role == 'librarian' or
-            obj.reader == request.user  # для моделей, где есть поле reader
+            obj.reader == request.user
         )

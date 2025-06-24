@@ -1,18 +1,14 @@
 
-from datetime import timedelta
 from django.utils import timezone
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from rest_framework.exceptions import ValidationError
 from .models import Author, Direction, Publisher, Book, Inventory, BookIssue, BookReturn
-from datetime import date
 import re
 
 
 
 User = get_user_model()
 
-# --- User ---
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -20,8 +16,8 @@ class UserSerializer(serializers.ModelSerializer):
                   'role', 'birth_date', 'passport', 'phone', 'address']
         extra_kwargs = {
             'password': {'write_only': True, 'required': False},
-            'passport': {'required': False},  # Делает паспорт необязательным при обновлении
-            'phone': {'required': False},  # Делает телефон необязательным при обновлении
+            'passport': {'required': False},
+            'phone': {'required': False},
             'address': {'required': False},
         }
 
@@ -72,25 +68,21 @@ class RegisterSerializer(serializers.ModelSerializer):
         return User.objects.create_user(**validated_data)
 
 
-# --- Author ---
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
         fields = '__all__'
 
-# --- Direction ---
 class DirectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Direction
         fields = '__all__'
 
-# --- Publisher ---
 class PublisherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publisher
         fields = '__all__'
 
-# --- Book ---
 class BookSerializer(serializers.ModelSerializer):
     authors = AuthorSerializer(many=True, read_only=True)
     direction = DirectionSerializer(read_only=True)
@@ -142,7 +134,6 @@ class BookSerializer(serializers.ModelSerializer):
 
 
 
-# --- Inventory ---
 class InventorySerializer(serializers.ModelSerializer):
     book = BookSerializer(read_only=True)
 
@@ -176,11 +167,9 @@ class BookIssueSerializer(serializers.ModelSerializer):
         reader = attrs['reader_id']
         book = attrs['book_id']
 
-        # Проверка: доступные экземпляры
         if not Inventory.objects.filter(book=book, status='available').exists():
             raise serializers.ValidationError("Нет доступных экземпляров этой книги.")
 
-        # Проверка: больше 3 книг у пользователя
         active_issues = BookIssue.objects.filter(
             reader=reader,
             bookreturn__isnull=True
@@ -188,7 +177,6 @@ class BookIssueSerializer(serializers.ModelSerializer):
         if active_issues.count() >= 3:
             raise serializers.ValidationError("Нельзя иметь больше 3 книг одновременно.")
 
-        # Проверка: пользователь уже имеет эту книгу
         if active_issues.filter(inventory__book=book).exists():
             raise serializers.ValidationError("У пользователя уже есть эта книга на руках.")
 
@@ -210,7 +198,6 @@ class BookIssueSerializer(serializers.ModelSerializer):
 
         return super().create(validated_data)
 
-# --- BookReturn ---
 class BookReturnSerializer(serializers.ModelSerializer):
     issue = BookIssueSerializer(read_only=True)
     issue_id = serializers.PrimaryKeyRelatedField(

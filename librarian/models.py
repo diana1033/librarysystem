@@ -7,7 +7,6 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 import re
 
-# Абстрактная модель мягкого удаления
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(is_deleted=False)
@@ -16,7 +15,7 @@ class SoftDeleteModel(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     objects = SoftDeleteManager()
-    all_objects = models.Manager()  # если надо видеть всё (например, в админке)
+    all_objects = models.Manager()
 
     class Meta:
         abstract = True
@@ -47,7 +46,6 @@ class User(AbstractUser):
         self.save()
 
 
-# --- Автор ---
 class Author(SoftDeleteModel):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
@@ -56,21 +54,18 @@ class Author(SoftDeleteModel):
     def __str__(self):
         return f"{self.last_name} {self.first_name[0]}.{self.middle_name[0] if self.middle_name else ''}"
 
-# --- Направление (категория книги) ---
 class Direction(SoftDeleteModel):
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
 
-# --- Издательство ---
 class Publisher(SoftDeleteModel):
     name = models.CharField(max_length=150)
 
     def __str__(self):
         return self.name
 
-# --- Книга ---
 class Book(SoftDeleteModel):
     CATEGORY_CHOICES = [
         ('textbook', 'Учебник'),
@@ -85,8 +80,8 @@ class Book(SoftDeleteModel):
     authors = models.ManyToManyField(Author)
     direction = models.ForeignKey(Direction, on_delete=models.SET_NULL, null=True)
     publisher = models.ForeignKey(Publisher, on_delete=models.SET_NULL, null=True)
-    udc = models.CharField("УДК", max_length=50, blank=True)  # УДК — строка, чтобы поддерживать формат вроде "004.4"
-    bbk = models.CharField("ББК", max_length=50, blank=True)  # ББК — аналогично
+    udc = models.CharField("УДК", max_length=50, blank=True)
+    bbk = models.CharField("ББК", max_length=50, blank=True)
     isbn = models.CharField("ISBN", max_length=20, blank=True)
     quantity = models.PositiveIntegerField()
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
@@ -100,22 +95,18 @@ class Book(SoftDeleteModel):
 
         super().save(*args, **kwargs)
 
-        # Если создается новая книга, создаем экземпляры
         if creating:
             for _ in range(self.quantity):
-                # Сохраняем каждый экземпляр отдельно, чтобы сработал save()
                 inventory_item = Inventory(book=self, status='available')
                 inventory_item.save()
 
         elif old_quantity is not None:
             diff = self.quantity - old_quantity
-            # Если количество увеличилось
             if diff > 0:
                 for _ in range(diff):
                     inventory_item = Inventory(book=self, status='available')
                     inventory_item.save()
 
-            # Если количество уменьшилось
             elif diff < 0:
                 available = Inventory.objects.filter(
                     book=self,
@@ -144,7 +135,7 @@ class Inventory(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.inventory_number:
-            super().save(*args, **kwargs)  # сначала сохранить, чтобы появился id
+            super().save(*args, **kwargs)
             self.inventory_number = f"INV-{self.id:05d}"
             return super().save(update_fields=["inventory_number"])
         super().save(*args, **kwargs)
