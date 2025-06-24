@@ -126,7 +126,8 @@ class Book(SoftDeleteModel):
                         "Нельзя уменьшить количество: недостаточно свободных экземпляров."
                     )
                 for inv in available:
-                    inv.update(status='deleted')
+                    inv.status = 'deleted'
+                    inv.save()
 
     def delete(self, *args, **kwargs):
         if BookIssue.objects.filter(book=self).exists():
